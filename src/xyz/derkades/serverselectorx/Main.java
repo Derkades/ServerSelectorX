@@ -158,18 +158,6 @@ public class Main extends JavaPlugin {
 				if (exception != null) {
 					exception.printStackTrace();
 				}
-				
-				// Try native method first
-				try {
-					if (headTexture != null) {
-						ItemStack itemStack = new ItemBuilder(Material.PLAYER_HEAD).skullTexture(headTexture).create();
-						builderConsumer.accept(new NbtItemBuilder(itemStack));
-					}
-				} catch (UnsupportedOperationException e) {
-					if (getConfigurationManager().getMiscConfiguration().getBoolean("head-api-debug", false)) {
-						e.printStackTrace();
-					}
-				}
 
 				if (headTexture != null) {
 					builderConsumer.accept(new NbtItemBuilder(Material.SKULL_ITEM).damage(3).skullTexture(headTexture));
