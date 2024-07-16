@@ -12,9 +12,12 @@ import org.bukkit.Material;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import xyz.derkades.derkutils.bukkit.ItemBuilder;
 import xyz.derkades.derkutils.bukkit.NbtItemBuilder;
 import xyz.derkades.derkutils.bukkit.PlaceholderUtil;
 import xyz.derkades.serverselectorx.configuration.ConfigSync;
@@ -154,6 +157,18 @@ public class Main extends JavaPlugin {
 			Futures.whenCompleteOnMainThread(plugin, headTextureFuture, (headTexture, exception) -> {
 				if (exception != null) {
 					exception.printStackTrace();
+				}
+				
+				// Try native method first
+				try {
+					if (headTexture != null) {
+						ItemStack itemStack = new ItemBuilder(Material.PLAYER_HEAD).skullTexture(headTexture).create();
+						builderConsumer.accept(new NbtItemBuilder(itemStack));
+					}
+				} catch (UnsupportedOperationException e) {
+					if (getConfigurationManager().getMiscConfiguration().getBoolean("head-api-debug", false)) {
+						e.printStackTrace();
+					}
 				}
 
 				if (headTexture != null) {

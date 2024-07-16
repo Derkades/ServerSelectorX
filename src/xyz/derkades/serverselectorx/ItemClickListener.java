@@ -1,6 +1,7 @@
 package xyz.derkades.serverselectorx;
 
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import java.util.logging.Logger;
+
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -10,10 +11,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+
+import de.tr7zw.changeme.nbtapi.NBTItem;
 import xyz.derkades.derkutils.Cooldown;
 import xyz.derkades.serverselectorx.conditional.ConditionalItem;
-
-import java.util.logging.Logger;
 
 public class ItemClickListener implements Listener {
 
