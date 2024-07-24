@@ -157,6 +157,7 @@ public class Main extends JavaPlugin {
 			Futures.whenCompleteOnMainThread(plugin, headTextureFuture, (headTexture, exception) -> {
 				if (exception != null) {
 					exception.printStackTrace();
+					return;
 				}
 				
 				// Try native method first
@@ -164,6 +165,7 @@ public class Main extends JavaPlugin {
 					if (headTexture != null) {
 						ItemStack itemStack = new ItemBuilder(Material.PLAYER_HEAD).skullTexture(headTexture).create();
 						builderConsumer.accept(new NbtItemBuilder(itemStack));
+						return;
 					}
 				} catch (UnsupportedOperationException e) {
 					if (getConfigurationManager().getMiscConfiguration().getBoolean("head-api-debug", false)) {
