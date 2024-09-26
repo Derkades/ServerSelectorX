@@ -1,34 +1,33 @@
 package xyz.derkades.serverselectorx;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
-import net.kyori.adventure.platform.bukkit.BukkitAudiences;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import xyz.derkades.derkutils.bukkit.ItemBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import de.tr7zw.changeme.nbtapi.utils.MinecraftVersion;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import xyz.derkades.derkutils.bukkit.NbtItemBuilder;
 import xyz.derkades.derkutils.bukkit.PlaceholderUtil;
 import xyz.derkades.serverselectorx.configuration.ConfigSync;
 import xyz.derkades.serverselectorx.configuration.ConfigurationManager;
 import xyz.derkades.serverselectorx.placeholders.PapiExpansionRegistrar;
 import xyz.derkades.serverselectorx.placeholders.Server;
-
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 public class Main extends JavaPlugin {
 
@@ -76,11 +75,11 @@ public class Main extends JavaPlugin {
 			throw new RuntimeException(e);
 		}
 
-		heads = new Heads(this);
+		this.heads = new Heads(this);
 
 		this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-		PluginCommand command = Objects.requireNonNull(this.getCommand("serverselectorx"),
+		final PluginCommand command = Objects.requireNonNull(this.getCommand("serverselectorx"),
 				"Command missing from plugin.yml");
 		command.setExecutor(new ServerSelectorXCommand());
 		command.setTabCompleter(new ServerSelectorXCommandCompleter());
@@ -152,11 +151,12 @@ public class Main extends JavaPlugin {
 				}
 			}
 
-			CompletableFuture<@Nullable String> headTextureFuture = plugin.heads.getHead(headValue);
+			final CompletableFuture<@Nullable String> headTextureFuture = plugin.heads.getHead(headValue);
 
 			Futures.whenCompleteOnMainThread(plugin, headTextureFuture, (headTexture, exception) -> {
 				if (exception != null) {
 					exception.printStackTrace();
+					return;
 				}
 
 				if (headTexture != null) {
@@ -170,7 +170,7 @@ public class Main extends JavaPlugin {
 
 		final String[] materialsToTry = materialString.split("\\|");
 		Material material = null;
-		for (String materialString2 : materialsToTry) {
+		for (final String materialString2 : materialsToTry) {
 			try {
 				material = Material.valueOf(materialString2);
 				break;
