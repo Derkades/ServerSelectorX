@@ -2,7 +2,6 @@ package xyz.derkades.serverselectorx.actions;
 
 import org.bukkit.entity.Player;
 
-import xyz.derkades.serverselectorx.Main;
 import xyz.derkades.serverselectorx.ServerSelectorX;
 import xyz.derkades.serverselectorx.placeholders.Server;
 

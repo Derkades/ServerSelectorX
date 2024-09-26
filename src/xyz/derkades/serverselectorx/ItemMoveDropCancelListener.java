@@ -1,6 +1,7 @@
 package xyz.derkades.serverselectorx;
 
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -14,7 +15,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
 
 public class ItemMoveDropCancelListener implements Listener {
 
@@ -23,8 +25,8 @@ public class ItemMoveDropCancelListener implements Listener {
 	}
 
 	private boolean isCancelledWorld(final World world) {
-		List<String> onlyIn = Main.getConfigurationManager().getInventoryConfiguration().getStringList("only-in-worlds");
-		List<String> exceptions = Main.getConfigurationManager().getInventoryConfiguration().getStringList("world-exceptions");
+		final List<String> onlyIn = Main.getConfigurationManager().getInventoryConfiguration().getStringList("only-in-worlds");
+		final List<String> exceptions = Main.getConfigurationManager().getInventoryConfiguration().getStringList("world-exceptions");
 		return (onlyIn.isEmpty() || onlyIn.contains(world.getName())) && !exceptions.contains(world.getName());
 	}
 
@@ -32,7 +34,7 @@ public class ItemMoveDropCancelListener implements Listener {
 		if (item == null || item.getType() == Material.AIR) {
 			return false;
 		} else {
-			final NBTItem nbt = new NBTItem(item);
+			final ReadableNBT nbt = NBT.readNbt(item);
 			// "SSXItem" and "SSXActions" is for items from older versions, this can be removed later
 			return nbt.hasTag("SSXItem") ||
 					nbt.hasTag("SSXActions") ||
@@ -47,10 +49,10 @@ public class ItemMoveDropCancelListener implements Listener {
 		}
 
 		if (!event.getPlayer().hasPermission("ssx.drop") &&
-				isCancelledWorld(event.getPlayer().getWorld()) &&
+				this.isCancelledWorld(event.getPlayer().getWorld()) &&
 				(
 						!Main.getConfigurationManager().getInventoryConfiguration().getBoolean("ssx-items-only") ||
-						isSsxItem(event.getItemDrop().getItemStack())
+						this.isSsxItem(event.getItemDrop().getItemStack())
 				)
 		) {
 			event.setCancelled(true);
@@ -64,14 +66,14 @@ public class ItemMoveDropCancelListener implements Listener {
 				Main.getConfigurationManager().getInventoryConfiguration().getBoolean("cancel-item-move") &&
 				event.getClickedInventory() != null &&
 				!event.getWhoClicked().hasPermission("ssx.move") &&
-				isCancelledWorld(event.getWhoClicked().getWorld()) &&
+				this.isCancelledWorld(event.getWhoClicked().getWorld()) &&
 				(
 						!Main.getConfigurationManager().getInventoryConfiguration().getBoolean("ssx-items-only") ||
-						isSsxItem(event.getCursor()) ||
-						isSsxItem(event.getCurrentItem()) ||
+						this.isSsxItem(event.getCursor()) ||
+						this.isSsxItem(event.getCurrentItem()) ||
 						(
 								event.getClick() == ClickType.NUMBER_KEY &&
-								isSsxItem(event.getWhoClicked().getInventory().getItem(event.getHotbarButton()))
+								this.isSsxItem(event.getWhoClicked().getInventory().getItem(event.getHotbarButton()))
 						)
 				)
 		);
@@ -82,10 +84,10 @@ public class ItemMoveDropCancelListener implements Listener {
 		event.setCancelled(
 				Main.getConfigurationManager().getInventoryConfiguration().getBoolean("cancel-item-move") &&
 				!event.getWhoClicked().hasPermission("ssx.move") &&
-				isCancelledWorld(event.getWhoClicked().getWorld()) &&
+				this.isCancelledWorld(event.getWhoClicked().getWorld()) &&
 				(
 						!Main.getConfigurationManager().getInventoryConfiguration().getBoolean("ssx-items-only") ||
-						isSsxItem(event.getCursor())
+						this.isSsxItem(event.getCursor())
 				)
 		);
 	}

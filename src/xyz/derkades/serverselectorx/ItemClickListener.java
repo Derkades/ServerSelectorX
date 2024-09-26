@@ -12,7 +12,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
 import xyz.derkades.derkutils.Cooldown;
 import xyz.derkades.serverselectorx.conditional.ConditionalItem;
 
@@ -20,7 +21,7 @@ public class ItemClickListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGH)
 	public void onInteract(final PlayerInteractEvent event) {
-		Logger logger = Main.getPlugin().getLogger();
+		final Logger logger = Main.getPlugin().getLogger();
 
 		if (Main.ITEM_DEBUG) {
 			logger.info("[Click debug] Player " + event.getPlayer().getName() + " performed action " + event.getAction() + " on item");
@@ -51,7 +52,7 @@ public class ItemClickListener implements Listener {
 			return;
 		}
 		
-		final NBTItem nbt = new NBTItem(item);
+		final ReadableNBT nbt = NBT.readNbt(item);
 
 		if (!nbt.hasTag("SSXActions")) {
 			if (Main.ITEM_DEBUG) {
@@ -72,7 +73,7 @@ public class ItemClickListener implements Listener {
 		final Player player = event.getPlayer();
 		
 		// this cooldown is added when the menu closes
-		String globalCooldownId = player.getName() + "ssxitemglobal";
+		final String globalCooldownId = player.getName() + "ssxitemglobal";
 		if (Cooldown.getCooldown(globalCooldownId) > 0) {
 			if (Main.ITEM_DEBUG) {
 				logger.info("[Click debug] Event was ignored because the global cooldown was in effect (this cooldown cannot be disabled)");

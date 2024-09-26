@@ -1,5 +1,6 @@
 package xyz.derkades.serverselectorx;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,14 +13,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.*;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.HashSet;
-import java.util.Set;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
 import xyz.derkades.serverselectorx.conditional.ConditionalItem;
 
 public class HotbarItemManager {
@@ -31,7 +34,7 @@ public class HotbarItemManager {
 	}
 
 	void enable() {
-		Bukkit.getPluginManager().registerEvents(new BukkitEventListener(), plugin);
+		Bukkit.getPluginManager().registerEvents(new BukkitEventListener(), this.plugin);
 	}
 
 	private void debug(String message) {
@@ -41,27 +44,27 @@ public class HotbarItemManager {
 	}
 
 	private boolean shouldHaveItem(final Player player, String configName) {
-		Configuration config = Main.getConfigurationManager().getItemConfiguration(configName);
+		final Configuration config = Main.getConfigurationManager().getItemConfiguration(configName);
 
 		if (config == null) {
-			debug("Item was for a config file that is now removed");
+			this.debug("Item was for a config file that is now removed");
 			return false;
 		}
 
 		if (config.getBoolean("give.permission")) {
-			debug("Permissions are enabled, checking permission");
+			this.debug("Permissions are enabled, checking permission");
 			final String permission = "ssx.item." + configName;
 			if (!player.hasPermission(permission)) {
-				debug("Player does not have permission");
+				this.debug("Player does not have permission");
 				return false;
 			}
 		}
 
 		if (config.isList("worlds")) {
-			debug("World whitelisting is enabled");
+			this.debug("World whitelisting is enabled");
 			// World whitelisting option is present
 			if (!config.getStringList("worlds").contains(player.getWorld().getName())) {
-				debug("Player is in a world that is not whitelisted (" + player.getWorld().getName() + ")");
+				this.debug("Player is in a world that is not whitelisted (" + player.getWorld().getName() + ")");
 				return false;
 			}
 		}
@@ -70,20 +73,20 @@ public class HotbarItemManager {
 	}
 
 	private void giveItem(Player player, String configName, int currentSlot) {
-		Configuration config = Main.getConfigurationManager().getItemConfiguration(configName);
+		final Configuration config = Main.getConfigurationManager().getItemConfiguration(configName);
 
 		if (!config.isConfigurationSection("item")) {
 			Main.getPlugin().getLogger().warning("Item '" + configName + "' has no item section, it has been ignored.");
 			return;
 		}
 
-		String cooldownId = player.getUniqueId() + configName;
-		PlayerInventory inv = player.getInventory();
+		final String cooldownId = player.getUniqueId() + configName;
+		final PlayerInventory inv = player.getInventory();
 		try {
 			ConditionalItem.getItem(player, config.getConfigurationSection("item"), cooldownId, item -> {
-				NBTItem nbt = new NBTItem(item);
-				nbt.setString("SSXItemConfigName", configName);
-				item = nbt.getItem();
+				NBT.modify(item, nbt -> {
+					nbt.setString("SSXItemConfigName", configName);
+				});
 
 				final int configuredSlot = config.getInt("give.inv-slot", 0);
 
@@ -105,7 +108,7 @@ public class HotbarItemManager {
 					}
 				}
 			});
-		} catch (InvalidConfigurationException e) {
+		} catch (final InvalidConfigurationException e) {
 			player.sendMessage(String.format("Invalid item config (in %s.yaml): %s",
 					configName, e.getMessage()));
 		}
@@ -115,70 +118,70 @@ public class HotbarItemManager {
 	 * Update SSX items for all online players
 	 */
 	public void updateSsxItems() {
-		for (Player player : Bukkit.getOnlinePlayers()) {
+		for (final Player player : Bukkit.getOnlinePlayers()) {
 			this.updateSsxItems(player);
 		}
 	}
 
 	public void updateSsxItems(final Player player) {
-		debug("Updating items for: " + player.getName());
-		ItemStack[] contents = player.getInventory().getContents();
+		this.debug("Updating items for: " + player.getName());
+		final ItemStack[] contents = player.getInventory().getContents();
 
 		// First remove any items
 
-		Set<String> itemConfigNames = Main.getConfigurationManager().listItemConfigurations();
+		final Set<String> itemConfigNames = Main.getConfigurationManager().listItemConfigurations();
 
-		Set<String> presentItems = new HashSet<>();
+		final Set<String> presentItems = new HashSet<>();
 
 		for (int slot = 0; slot < contents.length; slot++) {
-			ItemStack item = contents[slot];
+			final ItemStack item = contents[slot];
 			if (item == null) {
 				continue;
 			}
 
-			NBTItem nbt = new NBTItem(item);
+			final ReadableNBT nbt = NBT.readNbt(item);
 
 			if (!nbt.hasTag("SSXItemConfigName")) {
 				// Not our item
 				if (nbt.hasTag("SSXActions")) {
 					// actually, it is our item from an old SSX version
-					debug("Removing item from old SSX version from slot " + slot);
+					this.debug("Removing item from old SSX version from slot " + slot);
 					player.getInventory().setItem(slot, null);
 				}
 				continue;
 			}
 
-			String configName = nbt.getString("SSXItemConfigName");
+			final String configName = nbt.getString("SSXItemConfigName");
 
-			if (shouldHaveItem(player, configName)) {
-				debug("Player is allowed to keep item in slot " + slot);
+			if (this.shouldHaveItem(player, configName)) {
+				this.debug("Player is allowed to keep item in slot " + slot);
 			} else {
-				debug("Player is not allowed to keep item in slot " + slot + ", removing it");
+				this.debug("Player is not allowed to keep item in slot " + slot + ", removing it");
 				player.getInventory().setItem(slot, null);
 				continue;
 			}
 
-			debug("Update item " + slot + " in case the configuration has changed");
+			this.debug("Update item " + slot + " in case the configuration has changed");
 
-			giveItem(player, configName, slot);
+			this.giveItem(player, configName, slot);
 			presentItems.add(configName);
 		}
 
-		for (String configName : itemConfigNames) {
+		for (final String configName : itemConfigNames) {
 			if (presentItems.contains(configName)) {
 				continue;
 			}
 
-			debug("Player does not have item " + configName);
+			this.debug("Player does not have item " + configName);
 
-			if (!shouldHaveItem(player, configName)) {
-				debug("Player should not have the item, not giving it.");
+			if (!this.shouldHaveItem(player, configName)) {
+				this.debug("Player should not have the item, not giving it.");
 				continue;
 			}
 
-			debug("Player should have this item, giving it now");
+			this.debug("Player should have this item, giving it now");
 
-			giveItem(player, configName, -1);
+			this.giveItem(player, configName, -1);
 		}
 	}
 
@@ -190,7 +193,7 @@ public class HotbarItemManager {
 			final FileConfiguration config = Main.getConfigurationManager().getInventoryConfiguration();
 
 			if (config.getBoolean("clear-inv", false) && !player.hasPermission("ssx.clearinvbypass")) {
-				debug("Clearing inventory for " + player.getName());
+				HotbarItemManager.this.debug("Clearing inventory for " + player.getName());
 				final PlayerInventory inv = player.getInventory();
 				try {
 					final int length = ((ItemStack[]) inv.getClass().getMethod("getStorageContents").invoke(inv)).length;
@@ -224,7 +227,7 @@ public class HotbarItemManager {
 		@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
 		public void onPickUpItem(final PlayerPickupItemEvent event) {
 			final ItemStack pickedUpItem = event.getItem().getItemStack();
-			final NBTItem nbt = new NBTItem(pickedUpItem);
+			final ReadableNBT nbt = NBT.readNbt(pickedUpItem);
 			if (!nbt.hasTag(("SSXItemConfigName"))) {
 				return;
 			}
@@ -239,8 +242,8 @@ public class HotbarItemManager {
 				if (item2 == null || item2.getType() == Material.AIR) {
 					continue;
 				}
-				
-				final NBTItem nbt2 = new NBTItem(item2);
+
+				final ReadableNBT nbt2 = NBT.readNbt(item2);
 				if (nbt2.hasTag("SSXItemConfigName") && nbt2.getString("SSXItemConfigName").equals(itemConfigName)) {
 					Main.getPlugin().getLogger().info("Deleted duplicate item picked up by " + player.getName());
 					event.setCancelled(true);
