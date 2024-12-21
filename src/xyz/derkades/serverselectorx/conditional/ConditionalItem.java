@@ -24,9 +24,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import de.tr7zw.changeme.nbtapi.NBTContainer;
-import de.tr7zw.changeme.nbtapi.NBTItem;
+import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.NbtApiException;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBTList;
 import xyz.derkades.derkutils.Cooldown;
 import xyz.derkades.derkutils.bukkit.Colors;
 import xyz.derkades.derkutils.bukkit.PlaceholderUtil;
@@ -180,8 +181,8 @@ public class ConditionalItem {
 
 			if (nbtJson != null) {
 				try {
-					final NBTContainer container = new NBTContainer(nbtJson);
-					builder.editNbt(nbt -> nbt.mergeCompound(container));
+					final ReadableNBT nbtToAdd = NBT.parseNBT(nbtJson);
+					builder.editNbt(nbt -> nbt.mergeCompound(nbtToAdd));
 				} catch (final NbtApiException e) {
 					player.sendMessage("Skipped adding custom NBT to an item because of an error, please see the console for more info.");
 					e.printStackTrace();
@@ -223,11 +224,11 @@ public class ConditionalItem {
 			return false;
 		}
 
-		final NBTItem nbt = new NBTItem(item);
+		final ReadableNBT nbt = NBT.readNbt(item);
 
-		final List<String> actions = nbt.getStringList("SSXActions");
-		final List<String> leftActions = nbt.getStringList("SSXActionsLeft");
-		final List<String> rightActions = nbt.getStringList("SSXActionsRight");
+		final ReadableNBTList<String> actions = nbt.getStringList("SSXActions");
+		final ReadableNBTList<String> leftActions = nbt.getStringList("SSXActionsLeft");
+		final ReadableNBTList<String> rightActions = nbt.getStringList("SSXActionsRight");
 		if (nbt.hasTag("SSXCooldownTime") &&
 				( // Only apply cooldown if an action is about to be performed
 						!actions.isEmpty() ||
@@ -238,8 +239,8 @@ public class ConditionalItem {
 			final int cooldownTime = nbt.getInteger("SSXCooldownTime");
 			final String cooldownId = nbt.getString("SSXCooldownId");
 			if (Cooldown.getCooldown(cooldownId) > 0) {
-				final List<String> cooldownActions = nbt.getStringList("SSXCooldownActions");
-				return Action.runActions(player, cooldownActions);
+				final ReadableNBTList<String> cooldownActions = nbt.getStringList("SSXCooldownActions");
+				return Action.runActions(player, cooldownActions.toListCopy());
 			} else {
 				Cooldown.addCooldown(cooldownId, cooldownTime);
 			}
@@ -247,12 +248,12 @@ public class ConditionalItem {
 
 		boolean close = false;
 		if (actions != null) {
-			close = Action.runActions(player, actions);
+			close = Action.runActions(player, actions.toListCopy());
 		}
 		if (isRightClick && rightActions != null) {
-			close |= Action.runActions(player, rightActions);
+			close |= Action.runActions(player, rightActions.toListCopy());
 		} else if (isLeftClick && leftActions != null) {
-			close |= Action.runActions(player, leftActions);
+			close |= Action.runActions(player, leftActions.toListCopy());
 		}
 		return close;
 
