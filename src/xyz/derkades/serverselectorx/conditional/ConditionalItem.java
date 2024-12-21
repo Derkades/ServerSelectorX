@@ -1,8 +1,18 @@
 package xyz.derkades.serverselectorx.conditional;
 
-import de.tr7zw.changeme.nbtapi.NBTContainer;
-import de.tr7zw.changeme.nbtapi.NBTItem;
-import de.tr7zw.changeme.nbtapi.NbtApiException;
+import static org.bukkit.event.block.Action.LEFT_CLICK_AIR;
+import static org.bukkit.event.block.Action.LEFT_CLICK_BLOCK;
+import static org.bukkit.event.block.Action.RIGHT_CLICK_AIR;
+import static org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 import org.bukkit.Color;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -13,6 +23,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.NbtApiException;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBTList;
 import xyz.derkades.derkutils.Cooldown;
 import xyz.derkades.derkutils.bukkit.Colors;
 import xyz.derkades.derkutils.bukkit.PlaceholderUtil;
@@ -24,12 +39,6 @@ import xyz.derkades.serverselectorx.conditional.condition.Condition;
 import xyz.derkades.serverselectorx.conditional.condition.Conditions;
 import xyz.derkades.serverselectorx.placeholders.Server;
 
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static org.bukkit.event.block.Action.*;
-
 public class ConditionalItem {
 
 	@SuppressWarnings("unchecked")
@@ -38,13 +47,13 @@ public class ConditionalItem {
 			return sectionToMap(globalSection);
 		}
 
-		List<Map<?, ?>> conditionalsList = globalSection.getMapList("conditional");
+		final List<Map<?, ?>> conditionalsList = globalSection.getMapList("conditional");
 
-		for (Map<?, ?> genericMap : conditionalsList) {
-			Map<String, Object> map = (Map<String, Object>) genericMap;
+		for (final Map<?, ?> genericMap : conditionalsList) {
+			final Map<String, Object> map = (Map<String, Object>) genericMap;
 
 			// Add options from global section to this map
-			for (String key : globalSection.getKeys(false)) {
+			for (final String key : globalSection.getKeys(false)) {
 				map.putIfAbsent(key, globalSection.get(key));
 			}
 
@@ -52,10 +61,10 @@ public class ConditionalItem {
 				throw new InvalidConfigurationException("Missing 'type' option for a conditional");
 			}
 
-			String type = (String) map.get("type");
-			boolean invert = (boolean) map.getOrDefault("invert-condition", false);
+			final String type = (String) map.get("type");
+			final boolean invert = (boolean) map.getOrDefault("invert-condition", false);
 
-			Condition condition = Conditions.getConditionByType(type);
+			final Condition condition = Conditions.getConditionByType(type);
 			if (condition == null) {
 				throw new InvalidConfigurationException("Unknown condition type: " + type);
 			}
@@ -70,8 +79,8 @@ public class ConditionalItem {
 
 
 	private static Map<String, Object> sectionToMap(ConfigurationSection section) {
-		Map<String, Object> map = new HashMap<>();
-		for (String key : section.getKeys(false)) {
+		final Map<String, Object> map = new HashMap<>();
+		for (final String key : section.getKeys(false)) {
 			map.put(key, section.get(key));
 		}
 		return map;
@@ -82,7 +91,7 @@ public class ConditionalItem {
 							   @NotNull String cooldownId, @NotNull Consumer<@NotNull ItemStack> consumer)
 			throws InvalidConfigurationException {
 
-		Map<String, Object> matchedSection = matchSection(player, section);
+		final Map<String, Object> matchedSection = matchSection(player, section);
 
 		final String materialString = (String) matchedSection.getOrDefault("material", null);
 
@@ -108,11 +117,12 @@ public class ConditionalItem {
 			final List<String> cooldownActions = (List<String>) matchedSection.getOrDefault("cooldown-actions", Collections.emptyList());
 			final @Nullable String serverName = (String) matchedSection.get("server-name");
 			final @Nullable String color = (String) matchedSection.get("color");
+			final @Nullable Integer modelData = (Integer) matchedSection.getOrDefault("model-data", null);
 
 			final @Nullable Server server = serverName != null ? Server.getServer(serverName) : null;
 
 			if (server != null && server.isOnline() && amountOnline) {
-				int online = server.getOnlinePlayers();
+				final int online = server.getOnlinePlayers();
 				amount = online >= 1 && online <= 64 ? online : 1;
 			}
 
@@ -135,8 +145,8 @@ public class ConditionalItem {
 			builder.name(stringConverter.apply(title));
 
 			if (!lore.isEmpty()) {
-				List<String> parsedLore = new ArrayList<>(lore.size());
-				for (String line : lore) {
+				final List<String> parsedLore = new ArrayList<>(lore.size());
+				for (final String line : lore) {
 					parsedLore.add(stringConverter.apply(line));
 				}
 				builder.lore(parsedLore);
@@ -164,17 +174,21 @@ public class ConditionalItem {
 					return;
 				}
 				
-				int r = Integer.parseInt(color.substring(1, 3), 16);
-				int g = Integer.parseInt(color.substring(3, 5), 16);
-				int b = Integer.parseInt(color.substring(5, 7), 16);
+				final int r = Integer.parseInt(color.substring(1, 3), 16);
+				final int g = Integer.parseInt(color.substring(3, 5), 16);
+				final int b = Integer.parseInt(color.substring(5, 7), 16);
 				builder.leatherArmorColor(Color.fromRGB(r, g, b));
+			}
+			
+			if (modelData != null) {
+				builder.modelData(modelData);
 			}
 
 			if (nbtJson != null) {
 				try {
-					NBTContainer container = new NBTContainer(nbtJson);
-					builder.editNbt(nbt -> nbt.mergeCompound(container));
-				} catch (NbtApiException e) {
+					final ReadableNBT nbtToAdd = NBT.parseNBT(nbtJson);
+					builder.editNbt(nbt -> nbt.mergeCompound(nbtToAdd));
+				} catch (final NbtApiException e) {
 					player.sendMessage("Skipped adding custom NBT to an item because of an error, please see the console for more info.");
 					e.printStackTrace();
 				}
@@ -198,14 +212,14 @@ public class ConditionalItem {
 
 	public static boolean runActions(OptionClickEvent event) {
 		final ClickType click = event.getClickType();
-		boolean leftClick = click == ClickType.LEFT || click == ClickType.SHIFT_LEFT;
-		boolean rightClick = click == ClickType.RIGHT || click == ClickType.SHIFT_RIGHT;
+		final boolean leftClick = click == ClickType.LEFT || click == ClickType.SHIFT_LEFT;
+		final boolean rightClick = click == ClickType.RIGHT || click == ClickType.SHIFT_RIGHT;
 		return runActions(event.getPlayer(), event.getItemStack(), leftClick, rightClick);
 	}
 
 	public static boolean runActions(PlayerInteractEvent event) {
-		boolean leftClick = event.getAction() == LEFT_CLICK_AIR || event.getAction() == LEFT_CLICK_BLOCK;
-		boolean rightClick = event.getAction() == RIGHT_CLICK_AIR || event.getAction() == RIGHT_CLICK_BLOCK;
+		final boolean leftClick = event.getAction() == LEFT_CLICK_AIR || event.getAction() == LEFT_CLICK_BLOCK;
+		final boolean rightClick = event.getAction() == RIGHT_CLICK_AIR || event.getAction() == RIGHT_CLICK_BLOCK;
 		return runActions(event.getPlayer(), event.getItem(), leftClick, rightClick);
 	}
 
@@ -215,11 +229,11 @@ public class ConditionalItem {
 			return false;
 		}
 
-		NBTItem nbt = new NBTItem(item);
+		final ReadableNBT nbt = NBT.readNbt(item);
 
-		final List<String> actions = nbt.getStringList("SSXActions");
-		final List<String> leftActions = nbt.getStringList("SSXActionsLeft");
-		final List<String> rightActions = nbt.getStringList("SSXActionsRight");
+		final ReadableNBTList<String> actions = nbt.getStringList("SSXActions");
+		final ReadableNBTList<String> leftActions = nbt.getStringList("SSXActionsLeft");
+		final ReadableNBTList<String> rightActions = nbt.getStringList("SSXActionsRight");
 		if (nbt.hasTag("SSXCooldownTime") &&
 				( // Only apply cooldown if an action is about to be performed
 						!actions.isEmpty() ||
@@ -230,8 +244,8 @@ public class ConditionalItem {
 			final int cooldownTime = nbt.getInteger("SSXCooldownTime");
 			final String cooldownId = nbt.getString("SSXCooldownId");
 			if (Cooldown.getCooldown(cooldownId) > 0) {
-				final List<String> cooldownActions = nbt.getStringList("SSXCooldownActions");
-				return Action.runActions(player, cooldownActions);
+				final ReadableNBTList<String> cooldownActions = nbt.getStringList("SSXCooldownActions");
+				return Action.runActions(player, cooldownActions.toListCopy());
 			} else {
 				Cooldown.addCooldown(cooldownId, cooldownTime);
 			}
@@ -239,12 +253,12 @@ public class ConditionalItem {
 
 		boolean close = false;
 		if (actions != null) {
-			close = Action.runActions(player, actions);
+			close = Action.runActions(player, actions.toListCopy());
 		}
 		if (isRightClick && rightActions != null) {
-			close |= Action.runActions(player, rightActions);
+			close |= Action.runActions(player, rightActions.toListCopy());
 		} else if (isLeftClick && leftActions != null) {
-			close |= Action.runActions(player, leftActions);
+			close |= Action.runActions(player, leftActions.toListCopy());
 		}
 		return close;
 

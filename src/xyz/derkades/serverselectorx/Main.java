@@ -98,7 +98,6 @@ public class Main extends JavaPlugin {
 		this.hotbarItemManager.enable();
 
 		Bukkit.getPluginManager().registerEvents(new ItemClickListener(), this);
-		Bukkit.getPluginManager().registerEvents(new BetaMessageJoinListener(), this);
 		Bukkit.getPluginManager().registerEvents(new ActionsOnJoinListener(), this);
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
