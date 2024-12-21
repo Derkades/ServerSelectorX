@@ -179,10 +179,6 @@ public class ConditionalItem {
 				final int b = Integer.parseInt(color.substring(5, 7), 16);
 				builder.leatherArmorColor(Color.fromRGB(r, g, b));
 			}
-			
-			if (modelData != null) {
-				builder.modelData(modelData);
-			}
 
 			if (nbtJson != null) {
 				try {
