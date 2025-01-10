@@ -112,7 +112,7 @@ public class PingManager implements PluginMessageListener {
         ByteArrayDataInput in = ByteStreams.newDataInput(message);
         String subchannel = in.readUTF();
         if (!subchannel.equals("ServerIP")) {
-            throw new IllegalStateException();
+            return;
         }
 
         String serverName = in.readUTF();
