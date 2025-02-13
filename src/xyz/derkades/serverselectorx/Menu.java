@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.Nullable;
 import xyz.derkades.derkutils.Cooldown;
 import xyz.derkades.derkutils.bukkit.Colors;
+import xyz.derkades.derkutils.bukkit.PlaceholderUtil;
 import xyz.derkades.derkutils.bukkit.menu.IconMenu;
 import xyz.derkades.derkutils.bukkit.menu.MenuCloseEvent;
 import xyz.derkades.derkutils.bukkit.menu.OptionClickEvent;
@@ -29,19 +30,21 @@ public class Menu extends IconMenu {
 
 	private boolean closed = false;
 
-	private static String getTitle(FileConfiguration config) {
-		if (config == null) return "error";
-		if (!config.isString("title")) return "title missing";
-		if (config.getBoolean("title-minimessage")) {
-			return Main.miniMessageToLegacy(config.getString("title"));
-		} else {
-			return Colors.parseColors(config.getString("title"));
+	private static String getTitle(final FileConfiguration config, final Player player) {
+		if (config == null || !config.isString("title")) {
+			return "[title missing]";
 		}
+		String titleString = config.getBoolean("title-minimessage")
+				? Main.miniMessageToLegacy(config.getString("title"))
+				: Colors.parseColors(config.getString("title"));
+		titleString = titleString.replace("{player}", player.getName());
+		titleString = PlaceholderUtil.parsePapiPlaceholders(player, titleString);
+		return titleString;
 	}
 
 	public Menu(final Player player, final @Nullable FileConfiguration config, final String configName) {
 		super(Main.getPlugin(),
-				getTitle(config),
+				getTitle(config, player),
 				config == null ? 1 : config.getInt("rows", 6),
 				player);
 
@@ -99,7 +102,6 @@ public class Menu extends IconMenu {
 		ConfigurationSection menuSection = this.config.getConfigurationSection("menu");
 		if (menuSection == null) {
 			Main.getPlugin().getLogger().warning("Menu " + this.configName + " is missing a menu section. The menu will not contain any items.");
-//			player.sendMessage("Config file is missing a 'menu' section.");
 			return;
 		}
 
